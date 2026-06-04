@@ -16,4 +16,4 @@ WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8080
 # Use $PORT provided by Render; fall back to 8080 when $PORT is empty
-ENTRYPOINT ["sh","-c","java -Dserver.port=${PORT:-8080} -jar /app.jar"]
+ENTRYPOINT ["sh","-c","java -Dserver.port=${PORT:-8080} -jar /app/app.jar"]
