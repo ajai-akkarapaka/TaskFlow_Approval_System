@@ -10,16 +10,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
- * Converts a DATABASE_URL in the format postgres://user:pass@host:port/db
- * into Spring datasource properties (spring.datasource.url, username, password)
- * so that platforms like Render that provide DATABASE_URL without the jdbc: prefix work out-of-the-box.
+ * Converts common platform-provided DB URLs (DATABASE_URL, DB_URL, JDBC_DATABASE_URL)
+ * into Spring Boot properties (spring.datasource.url, username, password) early in startup.
+ * Also prints a small sanitized message to stdout so deploy logs show what was detected.
  */
 public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
-    private static final String DATABASE_URL = "DATABASE_URL";
     private static final String SPRING_DATASOURCE_URL = "spring.datasource.url";
     private static final String SPRING_DATASOURCE_USERNAME = "spring.datasource.username";
     private static final String SPRING_DATASOURCE_PASSWORD = "spring.datasource.password";
@@ -31,20 +29,23 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
                 environment.getProperty("DATABASE_URL"),
                 environment.getProperty("DB_URL"),
                 environment.getProperty("JDBC_DATABASE_URL"),
-                environment.getProperty("SPRING_DATASOURCE_URL")
+                environment.getProperty(SPRING_DATASOURCE_URL)
         );
 
         // If there's already a fully-qualified JDBC URL configured, nothing to do.
         String existing = environment.getProperty(SPRING_DATASOURCE_URL);
         if (existing != null && existing.startsWith("jdbc")) {
+            System.out.println("[DB-POST] spring.datasource.url already set and starts with jdbc; skipping conversion.");
             return;
         }
 
         if (dbUrl == null || dbUrl.isBlank()) {
             return;
         }
+
         if (dbUrl.startsWith("jdbc")) {
-            // Already a JDBC URL — override any non-jdbc existing value
+            // Already a JDBC URL — set it explicitly
+            System.out.println("[DB-POST] Detected JDBC URL from environment; setting spring.datasource.url");
             Map<String, Object> props = new HashMap<>();
             props.put(SPRING_DATASOURCE_URL, dbUrl);
             environment.getPropertySources().addFirst(new MapPropertySource("converted-database-url", props));
@@ -69,7 +70,6 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
             } else if (scheme.equalsIgnoreCase("mysql")) {
                 jdbcScheme = "mysql";
             } else {
-                // unknown scheme - default to scheme as-is
                 jdbcScheme = scheme;
             }
 
@@ -103,6 +103,18 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
                 props.put(SPRING_DATASOURCE_PASSWORD, password);
             }
 
+            // Log a sanitized message so deploy logs show what was detected (no password)
+            try {
+                String sanitized = dbUrl;
+                if (sanitized != null && sanitized.contains("@")) {
+                    int at = sanitized.indexOf('@');
+                    sanitized = "[REDACTED_CREDENTIALS]@" + sanitized.substring(at + 1);
+                }
+                System.out.println("[DB-POST] Converted DB URL '" + sanitized + "' to JDBC URL '" + jdbcUrl + "' and will set spring.datasource.* properties (username set? " + (username!=null) + ")");
+            } catch (Exception ignore) {
+                // swallow any logging issues
+            }
+
             if (!props.isEmpty()) {
                 environment.getPropertySources().addFirst(new MapPropertySource("converted-database-url", props));
             }
@@ -125,6 +137,4 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
         return null;
     }
 }
-
-
 
