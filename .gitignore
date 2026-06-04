@@ -1,0 +1,20 @@
+# build outputs
+/target/
+
+# IDE files
+/.idea/
+/*.iml
+
+# compiled classes and resources
+*.class
+*.jar
+
+# OS files
+.DS_Store
+
+# logs and temp files
+*.log
+*.tmp
+
+# application properties containing secrets (avoid committing secrets)
+secret.properties
