@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Converts a DATABASE_URL in the format postgres://user:pass@host:port/db
@@ -25,16 +26,27 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        String dbUrl = environment.getProperty(DATABASE_URL);
+        // Try common environment variables from platforms: DATABASE_URL, DB_URL, JDBC_DATABASE_URL
+        String dbUrl = firstNonBlank(
+                environment.getProperty("DATABASE_URL"),
+                environment.getProperty("DB_URL"),
+                environment.getProperty("JDBC_DATABASE_URL"),
+                environment.getProperty("SPRING_DATASOURCE_URL")
+        );
+
+        // If there's already a fully-qualified JDBC URL configured, nothing to do.
+        String existing = environment.getProperty(SPRING_DATASOURCE_URL);
+        if (existing != null && existing.startsWith("jdbc")) {
+            return;
+        }
+
         if (dbUrl == null || dbUrl.isBlank()) {
             return;
         }
         if (dbUrl.startsWith("jdbc")) {
-            // Already a JDBC URL, map it directly if target property not set
+            // Already a JDBC URL — override any non-jdbc existing value
             Map<String, Object> props = new HashMap<>();
-            if (environment.getProperty(SPRING_DATASOURCE_URL) == null) {
-                props.put(SPRING_DATASOURCE_URL, dbUrl);
-            }
+            props.put(SPRING_DATASOURCE_URL, dbUrl);
             environment.getPropertySources().addFirst(new MapPropertySource("converted-database-url", props));
             return;
         }
@@ -81,14 +93,13 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
             }
 
             Map<String, Object> props = new HashMap<>();
-            // only set properties if they are not already provided
-            if (environment.getProperty(SPRING_DATASOURCE_URL) == null) {
-                props.put(SPRING_DATASOURCE_URL, jdbcUrl.toString());
-            }
-            if (username != null && environment.getProperty(SPRING_DATASOURCE_USERNAME) == null) {
+            // override existing non-jdbc url or set it
+            props.put(SPRING_DATASOURCE_URL, jdbcUrl.toString());
+            // set username/password only if not already present
+            if ((environment.getProperty(SPRING_DATASOURCE_USERNAME) == null || environment.getProperty(SPRING_DATASOURCE_USERNAME).isBlank()) && username != null) {
                 props.put(SPRING_DATASOURCE_USERNAME, username);
             }
-            if (password != null && environment.getProperty(SPRING_DATASOURCE_PASSWORD) == null) {
+            if ((environment.getProperty(SPRING_DATASOURCE_PASSWORD) == null || environment.getProperty(SPRING_DATASOURCE_PASSWORD).isBlank()) && password != null) {
                 props.put(SPRING_DATASOURCE_PASSWORD, password);
             }
 
@@ -105,5 +116,15 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE;
     }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String v : values) {
+            if (v != null && !v.isBlank()) return v;
+        }
+        return null;
+    }
 }
+
+
 
