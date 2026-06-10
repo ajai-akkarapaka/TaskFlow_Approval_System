@@ -18,3 +18,5 @@
 
 # application properties containing secrets (avoid committing secrets)
 secret.properties
+.env
+AGENTS.md

@@ -6,7 +6,6 @@ A comprehensive Spring Boot application for managing request workflows with mult
 
 This backend application implements a complete workflow management system with:
 - Multi-level approval chains
-- Role-based access control
 - Request lifecycle management
 - Comprehensive audit logging
 - Swagger API documentation
@@ -82,6 +81,28 @@ The application starts on `http://localhost:8080`
 ### Access Swagger UI
 ```
 http://localhost:8080/swagger-ui/index.html
+```
+
+The REST APIs under `/api/**` use HTTP Basic authentication. In Swagger UI, click
+**Authorize** and enter the configured credentials.
+
+Default local test credentials:
+```
+Username: swagger
+Password: swagger-test-password
+```
+
+Override them in shared environments:
+```bash
+export API_AUTH_USERNAME=your_username
+export API_AUTH_PASSWORD=your_password
+```
+
+For local development, the application automatically loads variables from the
+repository `.env` file when it exists. Docker does not load that file
+automatically; pass it when starting the container:
+```bash
+docker run --env-file .env -p 8080:8080 taskflow
 ```
 
 ## 📡 REST APIs
