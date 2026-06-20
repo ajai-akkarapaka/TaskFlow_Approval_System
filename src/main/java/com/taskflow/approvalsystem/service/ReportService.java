@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.EnumMap;
 import java.util.List;
 
@@ -60,17 +62,17 @@ public class ReportService {
             if (r.getCreatedAt() != null) {
                 List<com.taskflow.approvalsystem.entity.ApprovalStep> steps = approvalStepRepository.findByRequestIdOrderByStepOrder(r.getId());
                 // consider only steps that have approvedAt
-                java.time.LocalDateTime createdAt = r.getCreatedAt();
-                java.time.LocalDateTime firstApprovedAt = null;
-                java.time.LocalDateTime lastApprovedAt = null;
-                java.time.LocalDateTime prevTimestamp = createdAt;
+                LocalDateTime createdAt = r.getCreatedAt();
+                LocalDateTime firstApprovedAt = null;
+                LocalDateTime lastApprovedAt = null;
+                LocalDateTime prevTimestamp = createdAt;
                 for (com.taskflow.approvalsystem.entity.ApprovalStep s : steps) {
                     if (s.getApprovedAt() != null) {
                         if (firstApprovedAt == null) firstApprovedAt = s.getApprovedAt();
                         lastApprovedAt = s.getApprovedAt();
                         // interval for this step = s.approvedAt - prevTimestamp
                         if (prevTimestamp != null) {
-                            java.time.Duration d = java.time.Duration.between(prevTimestamp, s.getApprovedAt());
+                            Duration d = Duration.between(prevTimestamp, s.getApprovedAt());
                             totalHoursPerStep += d.toMinutes() / 60.0;
                             countStepIntervals++;
                         }
@@ -78,12 +80,12 @@ public class ReportService {
                     }
                 }
                 if (firstApprovedAt != null) {
-                    java.time.Duration d = java.time.Duration.between(createdAt, firstApprovedAt);
+                    Duration d = Duration.between(createdAt, firstApprovedAt);
                     totalHoursToFirstApproval += d.toMinutes() / 60.0;
                     countFirstApproval++;
                 }
                 if (lastApprovedAt != null) {
-                    java.time.Duration d = java.time.Duration.between(createdAt, lastApprovedAt);
+                    Duration d = Duration.between(createdAt, lastApprovedAt);
                     totalHoursToFinalApproval += d.toMinutes() / 60.0;
                     countFinalApproval++;
                 }

@@ -11,6 +11,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.IntStream;
+import java.time.LocalDateTime;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
 
 @Service
 public class RequestService {
@@ -119,8 +123,6 @@ public class RequestService {
         logAudit(request, request.getRequester(), AuditAction.CANCEL, "Request cancelled by author");
     }
 
-    // Public Query API Methods (Required by Controller)
-
     public List<ApprovalStep> getPendingApprovals(Long userId) {
         return approvalStepRepository.findByApproverIdAndStatus(userId, ApprovalStatus.PENDING);
     }
@@ -134,14 +136,14 @@ public class RequestService {
             RequestType type,
             RequestStatus status,
             String department,
-            java.time.LocalDate startDate,
-            java.time.LocalDate endDate,
-            java.math.BigDecimal minAmount,
-            java.math.BigDecimal maxAmount,
-            org.springframework.data.domain.Pageable pageable) {
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+            Pageable pageable) {
 
-        org.springframework.data.jpa.domain.Specification<Request> spec = (root, query, cb) -> {
-            jakarta.persistence.criteria.Predicate p = cb.conjunction();
+            Specification<Request> spec = (root, query, cb) -> {
+            Predicate p = cb.conjunction();
 
             if (type != null) {
                 p = cb.and(p, cb.equal(root.get("type"), type));
@@ -153,11 +155,11 @@ public class RequestService {
                 p = cb.and(p, cb.equal(root.get("requester").get("department"), department));
             }
             if (startDate != null) {
-                java.time.LocalDateTime start = startDate.atStartOfDay();
+                LocalDateTime start = startDate.atStartOfDay();
                 p = cb.and(p, cb.greaterThanOrEqualTo(root.get("createdAt"), start));
             }
             if (endDate != null) {
-                java.time.LocalDateTime end = endDate.atTime(23, 59, 59);
+                LocalDateTime end = endDate.atTime(23, 59, 59);
                 p = cb.and(p, cb.lessThanOrEqualTo(root.get("createdAt"), end));
             }
             if (minAmount != null) {
