@@ -35,6 +35,9 @@ public class ApprovalWorkflowGenerator {
                     approvers.add(admin);
                 }
             }
+            case LEAVE -> {
+                // Leave requests require only manager approval.
+            }
         }
         // De-duplicate while preserving insertion order (example: if manager is also finance)
         return approvers.stream().distinct().toList();

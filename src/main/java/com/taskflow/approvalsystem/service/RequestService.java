@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.validation.constraints.NotNull;
+import java.util.Objects;
 
 @Service
 public class RequestService {
@@ -25,8 +27,8 @@ public class RequestService {
     @Autowired private UserRepository userRepository;
 
     @Transactional
-    public Request createRequest(String title, String description, RequestType type, Long requesterId, BigDecimal amount, LocalDate startDate, LocalDate endDate) {
-        User requester = userRepository.findById(requesterId)
+    public Request createRequest(String title, String description, RequestType type, @NotNull Long requesterId, BigDecimal amount, LocalDate startDate, LocalDate endDate) {
+        User requester = userRepository.findById(Objects.requireNonNull(requesterId))
                 .orElseThrow(() -> new IllegalArgumentException("Requester not found"));
 
         Request request = new Request(title, description, type, requester, amount, startDate, endDate);
@@ -119,7 +121,7 @@ public class RequestService {
                 .filter(step -> step.getStatus() == ApprovalStatus.PENDING)
                 .forEach(step -> step.cancel("Cancelled by requester"));
 
-        approvalStepRepository.saveAll(steps);
+        approvalStepRepository.saveAll(Objects.requireNonNull(steps));
         logAudit(request, request.getRequester(), AuditAction.CANCEL, "Request cancelled by author");
     }
 
@@ -128,7 +130,7 @@ public class RequestService {
     }
 
     public List<Request> getRequestsByUser(Long userId) {
-        return requestRepository.findByRequesterIdAndStatus(userId, RequestStatus.DRAFT);
+        return requestRepository.findByRequesterIdAndStatus(Objects.requireNonNull(userId), RequestStatus.DRAFT);
     }
 
     //Search requests with optional filters and pagination.
@@ -140,7 +142,7 @@ public class RequestService {
             LocalDate endDate,
             BigDecimal minAmount,
             BigDecimal maxAmount,
-            Pageable pageable) {
+            @NotNull Pageable pageable) {
 
             Specification<Request> spec = (root, query, cb) -> {
             Predicate p = cb.conjunction();
@@ -172,15 +174,15 @@ public class RequestService {
             return p;
         };
 
-        return requestRepository.findAll(spec, pageable);
+        return requestRepository.findAll(spec, Objects.requireNonNull(pageable));
     }
 
     private Request findRequest(Long id) {
-        return requestRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Request not found"));
+        return requestRepository.findById(Objects.requireNonNull(id)).orElseThrow(() -> new IllegalArgumentException("Request not found"));
     }
 
     private ApprovalStep findCurrentPendingStep(Long requestId) {
-        return approvalStepRepository.findByRequestIdOrderByStepOrder(requestId).stream()
+        return approvalStepRepository.findByRequestIdOrderByStepOrder(Objects.requireNonNull(requestId)).stream()
                 .filter(step -> step.getStatus() == ApprovalStatus.PENDING)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No pending approval steps found for this request"));
@@ -190,6 +192,8 @@ public class RequestService {
         switch (request.getType()) {
             case EXPENSE -> { if (request.getAmount() == null) throw new IllegalArgumentException("Amount is required for expense requests"); }
             case LEAVE -> { if (request.getStartDate() == null || request.getEndDate() == null) throw new IllegalArgumentException("Start and End dates are required for leaves"); }
+            case ASSET -> { if (request.getAmount() == null) throw new IllegalArgumentException("Amount is required for asset requests"); }
+            case ACCESS -> { /* No additional fields required */ }
         }
     }
 
@@ -204,7 +208,7 @@ public class RequestService {
                 .mapToObj(index -> new ApprovalStep(request, index + 1, sequenceOfApprovers.get(index)))
                 .toList();
 
-        approvalStepRepository.saveAll(steps);
+        approvalStepRepository.saveAll(Objects.requireNonNull(steps));
     }
 
     private User findUserByRole(Role role) {

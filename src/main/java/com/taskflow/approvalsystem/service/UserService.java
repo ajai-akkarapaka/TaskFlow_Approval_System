@@ -3,9 +3,10 @@ package com.taskflow.approvalsystem.service;
 import com.taskflow.approvalsystem.entity.User;
 import com.taskflow.approvalsystem.enums.Role;
 import com.taskflow.approvalsystem.repository.UserRepository;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import java.util.Objects;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,8 +35,8 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
+    public Optional<User> getUserById(@NotNull Long id) {
+        return userRepository.findById(Objects.requireNonNull(id));
     }
 
     public Optional<User> getUserByEmail(String email) {
