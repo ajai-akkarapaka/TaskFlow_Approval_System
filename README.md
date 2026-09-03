@@ -11,7 +11,7 @@ This backend application implements a complete workflow management system with:
 - Swagger API documentation
 
 ## Architecture - Tech Stack
-- **Framework**: Spring Boot 3.2.0
+- **Framework**: Spring Boot 3.5.16
 - **Build Tool**: Maven
 - **Database**: MySQL 8.0+
 - **ORM**: JPA/Hibernate
