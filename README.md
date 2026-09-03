@@ -16,7 +16,7 @@ This backend application implements a complete workflow management system with:
 - **Database**: MySQL 8.0+
 - **ORM**: JPA/Hibernate
 - **API Documentation**: Swagger/OpenAPI 3.0
-- **Java Version**: 17
+- **Java Version**: 25
 
 
 ## Core Entities

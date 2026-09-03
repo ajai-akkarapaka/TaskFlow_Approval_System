@@ -14,7 +14,7 @@
     <name>TaskFlow Approval System</name>
     <description>Backend Java application for managing request workflows with multi-level approvals</description>
     <properties>
-        <java.version>17</java.version>
+        <java.version>25</java.version>
     </properties>
     <dependencies>
         <dependency>
